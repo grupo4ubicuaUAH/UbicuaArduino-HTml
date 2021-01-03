@@ -1,5 +1,4 @@
 #include <PubSubClient.h>
-
 #include <ArduinoWebsockets.h>
 #include "esp_http_server.h"
 #include "esp_timer.h"
@@ -11,10 +10,11 @@
 #include "fr_flash.h"
 const char* ssid = "MOVISTAR_8BB3";
 const char* password = "AA4351C77B2ED6E4E87D";
-const char* mqttServer = "81.40.105.254";
+const char* mqttServer = "138.201.164.206";
 const int mqttPort = 1883;
-const char* mqttUser = "ubicua";
-const char* mqttPassword = "SistemaSeguridad123";
+const char* mqttUser = "root";
+const char* mqttPassword = " EE6zGqxZL5anUmst";
+String persona;
 
 #define light_topic "station1/humidity";
 #define temperature_topic "station1/temperature";
@@ -68,7 +68,7 @@ void initMQTTServer() {
       delay(2000);
     }
   }
-  client.publish("esp/test", "TU QUE FUNCIONA ");
+  enviarLista();
 }
 
 static inline mtmn_config_t app_mtmn_config()
@@ -240,6 +240,7 @@ static esp_err_t send_face_list(WebsocketsClient &client)
   for (int i = 0; i < st_face_list.count; i++) // loop current faces
   {
     sprintf(add_face, "listface:%s", head->id_name);
+    Serial.println(head->id_name);
     client.send(add_face); //send face to browser
     head = head->next;
   }
@@ -305,6 +306,7 @@ void loop() {
   while (client.available()) {
     client.poll();
 
+
     if (millis() - interval > door_opened_millis) { // current time - face recognised time > 5 secs
       digitalWrite(relay_pin, LOW); //open relay
     }
@@ -350,7 +352,6 @@ void loop() {
               sprintf(captured_message, "FACE CAPTURED FOR %s", st_face_list.tail->id_name);
               client.send(captured_message);
               send_face_list(client);
-
             }
           }
 
@@ -364,7 +365,10 @@ void loop() {
               open_door(client);
               client.send(recognised_message);
               Serial.print(f->id_name);
+              persona = (f->id_name);
+              Serial.print("He impreso esto con la string" + persona);
               initMQTTServer();
+              enviarPersona(f);
             }
             else
             {
@@ -393,4 +397,19 @@ void loop() {
     esp_camera_fb_return(fb);
     fb = NULL;
   }
+}
+void enviarLista() {
+  face_id_node *head = st_face_list.head;
+  char add_face[64];
+  Serial.println("voy a imprimir a vario sde las personas que pueden entrar");
+  for (int i = 0; i < st_face_list.count; i++) // loop current faces
+  {
+    sprintf(add_face, "listface:%s", head->id_name);
+    client.publish("listaPersonasEntrada/entrada", head->id_name);
+    Serial.println(head->id_name);
+    head = head->next;
+  }
+}
+void enviarPersona(face_id_node *f){
+  client.publish("esp/test", f->id_name);
 }
